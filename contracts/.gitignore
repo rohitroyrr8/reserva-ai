@@ -1,0 +1,10 @@
+# Foundry
+cache/
+out/
+
+# dotenv
+.env
+.env.local
+
+# broadcast logs contain deployment records — keep testnet, ignore local/dry-run noise
+broadcast/*/31337/

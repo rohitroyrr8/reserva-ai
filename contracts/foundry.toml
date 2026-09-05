@@ -1,0 +1,15 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+
+# Arc RPC endpoints — set ARC_TESTNET_RPC_URL / ARC_MAINNET_RPC_URL in your env.
+# Fill in once Circle publishes the canonical Arc endpoints/chain IDs.
+[rpc_endpoints]
+arc_testnet = "${ARC_TESTNET_RPC_URL}"
+arc_mainnet = "${ARC_MAINNET_RPC_URL}"
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
