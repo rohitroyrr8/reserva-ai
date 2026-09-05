@@ -1,6 +1,7 @@
 # Foundry
 cache/
 out/
+lib/
 
 # dotenv
 .env
