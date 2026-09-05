@@ -2,34 +2,36 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ProgramVault} from "../src/ProgramVault.sol";
 
-/// @notice Deploys ProgramVault against a real USDC address.
+/// @notice One-time deploy: implementation + ERC1967 proxy, initialized.
+///         Every merchant program afterwards is opened self-serve via
+///         `ProgramVault(proxy).createProgram(...)` — no further deploys.
 ///
 /// Usage (testnet):
 ///   forge script script/DeployProgramVault.s.sol:DeployProgramVault \
 ///     --rpc-url arc_testnet --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 ///
 /// Required env vars — see contracts/.env.example:
-///   USDC_ADDRESS        stablecoin the vault denominates in
-///   VAULT_OWNER         merchant's policy-controlled wallet (Privy)
-///   VAULT_ISSUER        Reserva API/agent's signer address
-///   VAULT_SECOND_APPROVER  distinct address required to approve withdrawals
+///   USDC_ADDRESS     stablecoin every program denominates in (immutable, baked into the implementation)
+///   PROTOCOL_ADMIN   Reserva-side key authorized to `upgradeToAndCall` later — not a merchant
 contract DeployProgramVault is Script {
-    function run() external returns (ProgramVault vault) {
+    function run() external returns (ProgramVault vault, address implementation) {
         address usdc = vm.envAddress("USDC_ADDRESS");
-        address owner = vm.envAddress("VAULT_OWNER");
-        address issuer = vm.envAddress("VAULT_ISSUER");
-        address secondApprover = vm.envAddress("VAULT_SECOND_APPROVER");
+        address protocolAdmin = vm.envAddress("PROTOCOL_ADMIN");
 
         vm.startBroadcast();
-        vault = new ProgramVault(usdc, owner, issuer, secondApprover);
+        implementation = address(new ProgramVault(usdc));
+        bytes memory initData = abi.encodeCall(ProgramVault.initialize, (protocolAdmin));
+        address proxy = address(new ERC1967Proxy(implementation, initData));
         vm.stopBroadcast();
 
-        console.log("ProgramVault deployed:", address(vault));
-        console.log("  asset (USDC):       ", usdc);
-        console.log("  owner:              ", owner);
-        console.log("  issuer:             ", issuer);
-        console.log("  secondApprover:     ", secondApprover);
+        vault = ProgramVault(proxy);
+
+        console.log("ProgramVault proxy deployed:  ", proxy);
+        console.log("  implementation:             ", implementation);
+        console.log("  asset (USDC):               ", usdc);
+        console.log("  protocolAdmin (upgrade key):", protocolAdmin);
     }
 }
